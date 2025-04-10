@@ -1,0 +1,71 @@
+# .github/workflows/set-project-field.yml
+name: Set Project Field on Issue
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  set-project-field:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call GitHub API to update project field
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const projectNumber = 1; // Replace with your project number
+            const org = 'abykoshy'; // Replace with your org or user
+
+            // Get project ID
+            const project = await github.graphql(`
+              query($org: String!, $number: Int!) {
+                organization(login: $org) {
+                  projectV2(number: $number) {
+                    id
+                  }
+                }
+              }
+            `, {
+              org: org,
+              number: projectNumber,
+            });
+
+            const projectId = project.organization.projectV2.id;
+
+            // Add issue to the project
+            const item = await github.graphql(`
+              mutation($projectId: ID!, $contentId: ID!) {
+                addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+                  item {
+                    id
+                  }
+                }
+              }
+            `, {
+              projectId,
+              contentId: context.payload.issue.node_id,
+            });
+
+            const itemId = item.addProjectV2ItemById.item.id;
+
+            // Set a custom field value (e.g., "Status" = "To Do")
+            const fieldId = '183513890'; // You'll need to look this up once
+            const optionId = 'your-option-id'; // Also look this up for field value like "To Do"
+
+            await github.graphql(`
+              mutation {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: "${projectId}",
+                  itemId: "${itemId}",
+                  fieldId: "${fieldId}",
+                  value: {
+                    singleSelectOptionId: "${optionId}"
+                  }
+                }) {
+                  projectV2Item {
+                    id
+                  }
+                }
+              }
+            `);
