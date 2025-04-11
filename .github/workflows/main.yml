@@ -58,7 +58,7 @@ jobs:
                 }
               }
             }
-            }'  | jq -r '.data.node.fields.nodes[] | select(.name == “Team”) | .id')
+            }'  | jq -r '.data.node.fields.nodes[] | select(.name == "Team") | .id')
           PROJECT_ISSUE_NUMBER=$(gh api graphql -f query='
             query {
               node(id: "$PROJECT_ID") {
