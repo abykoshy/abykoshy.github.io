@@ -9,13 +9,7 @@ jobs:
     steps:
       - name: Set field
         run: |
-          # Variables
-          ISSUE_URL="${{ github.event.issue.html_url }}"
-          ISSUE_NUMBER=${{ github.event.issue.number }}
-          OWNER=abykoshy
-          PROJECT_NUMBER=1
-          FIELD_NAME=Team
-          FIELD_VALUE=fromaction
+          echo $(gh project list --owner $OWNER --format json)
           PROJECT_ID=$(gh project list --owner $OWNER --format json | jq -r '.projects[] | select(.number == '$PROJECT_NUMBER') | .id')
           ISSUE_ITEM_ID=$(gh project item-list --owner $OWNER $PROJECT_NUMBER --format json | jq -r '.items[] | select(.content.number == '$ISSUE_NUMBER') | .id')
           FIELD_ID=$(gh project field-list $PROJECT_NUMBER --owner $OWNER --format json | jq -r '.fields[] | select(.name == "Team") | .id')
@@ -25,5 +19,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          NUMBER: ${{ github.event.issue.number }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
           LABELS: triage
+          OWNER: abykoshy
+          PROJECT_NUMBER: 1
+          FIELD_NAME: Team
+          FIELD_VALUE: fromaction
