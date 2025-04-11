@@ -1,71 +1,102 @@
-# .github/workflows/set-project-field.yml
-name: Set Project Field on Issue
-
+name: Set Issue Aquad for Support
 on:
   issues:
-    types: [opened]
-
+    types:
+      - opened
 jobs:
-  set-project-field:
+  label_issues:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
-      - name: Call GitHub API to update project field
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const projectNumber = 1; // Replace with your project number
-            const org = 'abykoshy'; // Replace with your org or user
-
-            // Get project ID
-            const project = await github.graphql(`
-              query($org: String!, $number: Int!) {
-                organization(login: $org) {
-                  projectV2(number: $number) {
-                    id
+      - run: |
+          # Variables
+          ISSUE_URL="${{ github.event.issue.html_url }}"
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ORG="abykoshy"
+          PROJECT_NUMBER=1
+          FIELD_NAME="Team"
+          FIELD_VALUE="fromaction"
+          PROJECT_ID=$(gh api graphql -f query='
+            query{
+              user(login: "$ORG"){
+                projectV2(number: 1) {
+                  id
+                }
+              }
+            }' | jq -r '.data.user.projectV2.id')
+          PROJECT_FIELD_ID=$(
+            gh api graphql -f query='
+            query{
+            node(id: "$PROJECT_ID") {
+              ... on ProjectV2 {
+                fields(first: 20) {
+                  nodes {
+                    ... on ProjectV2Field {
+                      id
+                      name
+                    }
+                    ... on ProjectV2IterationField {
+                      id
+                      name
+                      configuration {
+                        iterations {
+                          startDate
+                          id
+                        }
+                      }
+                    }
+                    ... on ProjectV2SingleSelectField {
+                      id
+                      name
+                      options {
+                        id
+                        name
+                      }
+                    }
                   }
                 }
               }
-            `, {
-              org: org,
-              number: projectNumber,
-            });
-
-            const projectId = project.organization.projectV2.id;
-
-            // Add issue to the project
-            const item = await github.graphql(`
-              mutation($projectId: ID!, $contentId: ID!) {
-                addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
-                  item {
-                    id
+            }
+            }'  | jq -r '.data.node.fields.nodes[] | select(.name == “Team”) | .id')
+          PROJECT_ISSUE_NUMBER=$(gh api graphql -f query='
+            query {
+              node(id: "$PROJECT_ID") {
+                ... on ProjectV2 {
+                  items(first: 100) {
+                    nodes {
+                      id
+                      content {
+                        ... on Issue {
+                          id
+                          number
+                          title
+                        }
+                      }
+                    }
                   }
                 }
               }
-            `, {
-              projectId,
-              contentId: context.payload.issue.node_id,
-            });
-
-            const itemId = item.addProjectV2ItemById.item.id;
-
-            // Set a custom field value (e.g., "Status" = "To Do")
-            const fieldId = '183513890'; // You'll need to look this up once
-            const optionId = 'your-option-id'; // Also look this up for field value like "To Do"
-
-            await github.graphql(`
-              mutation {
-                updateProjectV2ItemFieldValue(input: {
-                  projectId: "${projectId}",
-                  itemId: "${itemId}",
-                  fieldId: "${fieldId}",
+            }'  | jq '.data.node.items.nodes[] | select(.content.number == $ISSUE_NUMBER) | .id')
+          gh api graphql -f query='
+            mutation {
+              updateProjectV2ItemFieldValue(
+                input: {
+                  projectId: "$PROJECT_ID"
+                  itemId: "PROJECT_ISSUE_NUMBER"
+                  fieldId: "PROJECT_FIELD_ID"
                   value: {
-                    singleSelectOptionId: "${optionId}"
-                  }
-                }) {
-                  projectV2Item {
-                    id
+                    singleSelectOptionId: "fromaction"
                   }
                 }
+              ) {
+                projectV2Item {
+                  id
+                }
               }
-            `);
+            }'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          LABELS: triage
