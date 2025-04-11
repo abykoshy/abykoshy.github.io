@@ -12,88 +12,16 @@ jobs:
           # Variables
           ISSUE_URL="${{ github.event.issue.html_url }}"
           ISSUE_NUMBER=${{ github.event.issue.number }}
-          ORG=abykoshy
+          OWNER=abykoshy
           PROJECT_NUMBER=1
           FIELD_NAME=Team
           FIELD_VALUE=fromaction
-          PROJECT_ID=$(gh api graphql -f query='
-            query{
-              user(login: "'$ORG'"){
-                projectV2(number: '$PROJECT_NUMBER') {
-                  id
-                }
-              }
-            }' | jq -r '.data.user.projectV2.id')
-          PROJECT_FIELD_ID=$(
-            gh api graphql -f query='
-            query{
-            node(id: "'$PROJECT_ID'") {
-              ... on ProjectV2 {
-                fields(first: 20) {
-                  nodes {
-                    ... on ProjectV2Field {
-                      id
-                      name
-                    }
-                    ... on ProjectV2IterationField {
-                      id
-                      name
-                      configuration {
-                        iterations {
-                          startDate
-                          id
-                        }
-                      }
-                    }
-                    ... on ProjectV2SingleSelectField {
-                      id
-                      name
-                      options {
-                        id
-                        name
-                      }
-                    }
-                  }
-                }
-              }
-            }
-            }'  | jq -r '.data.node.fields.nodes[] | select(.name == "Team") | .id')
-          PROJECT_ISSUE_NUMBER=$(gh api graphql -f query='
-            query {
-              node(id: "'$PROJECT_ID'") {
-                ... on ProjectV2 {
-                  items(first: 100) {
-                    nodes {
-                      id
-                      content {
-                        ... on Issue {
-                          id
-                          number
-                          title
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }'  | jq '.data.node.items.nodes[] | select(.content.number == '$ISSUE_NUMBER') | .id')
-          gh api graphql -f query='
-            mutation {
-              updateProjectV2ItemFieldValue(
-                input: {
-                  projectId: "'$PROJECT_ID'"
-                  itemId: "'$PROJECT_ISSUE_NUMBER'"
-                  fieldId: "'$PROJECT_FIELD_ID'"
-                  value: {
-                    singleSelectOptionId: "fromaction"
-                  }
-                }
-              ) {
-                projectV2Item {
-                  id
-                }
-              }
-            }'
+          PROJECT_ID=$(gh project list --owner $OWNER --format json | jq -r '.projects[] | select(.number == $PROJECT_NUMBER) | .id’)
+          ISSUE_ITEM_ID=$(gh project item-list --owner $OWNER $PROJECT_NUMBER --format json | jq -r '.items[] | select(.content.number == $ISSUE_NUMBER) | .id’)
+          FIELD_ID=$(gh project field-list $PROJECT_NUMBER --owner $OWNER --format json | jq -r '.fields[] | select(.name == "Team") | .id’)
+          FIELD_OPTION_ID=$(gh project field-list $PROJECT_NUMBER --owner $OWNER --format json | jq -r '.fields[] | select(.name == "Team") | .options[] | select(.name == "fromaction") | .id’)
+
+          gh project item-edit --project-id $PROJECT_ID --field-id $FIELD_ID --single-select-option-id $FIELD_OPTION_ID --id $FIELD_ID
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
