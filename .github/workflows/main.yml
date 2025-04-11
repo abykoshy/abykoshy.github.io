@@ -6,9 +6,6 @@ on:
 jobs:
   label_issues:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      repository-projects: read
     steps:
       - name: Set field
         run: |
