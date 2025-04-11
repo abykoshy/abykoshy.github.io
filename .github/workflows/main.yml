@@ -19,7 +19,7 @@ jobs:
           PROJECT_ID=$(gh api graphql -f query='
             query{
               user(login: "'$ORG'"){
-                projectV2(number: $PROJECT_NUMBER) {
+                projectV2(number: '$PROJECT_NUMBER') {
                   id
                 }
               }
