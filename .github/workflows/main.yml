@@ -7,15 +7,16 @@ jobs:
   label_issues:
     runs-on: ubuntu-latest
     steps:
+      - name: Authenticate GitHub CLI
+        run: gh auth setup-git
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set field
         run: |
           echo $(gh project list --owner $OWNER --format json)
-          PROJECT_ID=$(gh project list --owner $OWNER --format json | jq -r '.projects[] | select(.number == '$PROJECT_NUMBER') | .id')
-          ISSUE_ITEM_ID=$(gh project item-list --owner $OWNER $PROJECT_NUMBER --format json | jq -r '.items[] | select(.content.number == '$ISSUE_NUMBER') | .id')
-          FIELD_ID=$(gh project field-list $PROJECT_NUMBER --owner $OWNER --format json | jq -r '.fields[] | select(.name == "Team") | .id')
-          FIELD_OPTION_ID=$(gh project field-list $PROJECT_NUMBER --owner $OWNER --format json | jq -r '.fields[] | select(.name == "Team") | .options[] | select(.name == "fromaction") | .id')
+          ISSUE_ITEM_ID=$(gh project item-list --owner abykoshy 1 --format json | jq -r '.items[] | select(.content.number == 2) | .id’)
 
-          gh project item-edit --project-id $PROJECT_ID --field-id $FIELD_ID --single-select-option-id $FIELD_OPTION_ID --id $FIELD_ID
+          gh project item-edit --project-id $vars.PROJECT_ID --field-id $vars.FIELD_ID --single-select-option-id $vars.FIELD_OPTION_VALUE_ID --id $ISSUE_ITEM_ID
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
