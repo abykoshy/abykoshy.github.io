@@ -12,7 +12,7 @@ jobs:
       - run: |
           # Variables
           ISSUE_URL="${{ github.event.issue.html_url }}"
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_NUMBER=${{ github.event.issue.number }}
           ORG="abykoshy"
           PROJECT_NUMBER=1
           FIELD_NAME="Team"
