@@ -19,8 +19,8 @@ jobs:
           FIELD_VALUE="fromaction"
           PROJECT_ID=$(gh api graphql -f query='
             query{
-              user(login: "$ORG"){
-                projectV2(number: 1) {
+              user(login: "'$ORG'"){
+                projectV2(number: '$PROJECT_NUMBER') {
                   id
                 }
               }
@@ -28,7 +28,7 @@ jobs:
           PROJECT_FIELD_ID=$(
             gh api graphql -f query='
             query{
-            node(id: "$PROJECT_ID") {
+            node(id: "'$PROJECT_ID'") {
               ... on ProjectV2 {
                 fields(first: 20) {
                   nodes {
@@ -61,7 +61,7 @@ jobs:
             }'  | jq -r '.data.node.fields.nodes[] | select(.name == "Team") | .id')
           PROJECT_ISSUE_NUMBER=$(gh api graphql -f query='
             query {
-              node(id: "$PROJECT_ID") {
+              node(id: "'$PROJECT_ID'") {
                 ... on ProjectV2 {
                   items(first: 100) {
                     nodes {
@@ -77,14 +77,14 @@ jobs:
                   }
                 }
               }
-            }'  | jq '.data.node.items.nodes[] | select(.content.number == $ISSUE_NUMBER) | .id')
+            }'  | jq '.data.node.items.nodes[] | select(.content.number == '$ISSUE_NUMBER') | .id')
           gh api graphql -f query='
             mutation {
               updateProjectV2ItemFieldValue(
                 input: {
-                  projectId: "$PROJECT_ID"
-                  itemId: "PROJECT_ISSUE_NUMBER"
-                  fieldId: "PROJECT_FIELD_ID"
+                  projectId: "'$PROJECT_ID'"
+                  itemId: "'$PROJECT_ISSUE_NUMBER'"
+                  fieldId: "'$PROJECT_FIELD_ID'"
                   value: {
                     singleSelectOptionId: "fromaction"
                   }
