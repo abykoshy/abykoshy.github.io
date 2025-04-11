@@ -10,16 +10,6 @@ jobs:
       issues: write
       repository-projects: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup GitHub CLI
-        uses: cli/cli-action@v2
-
-      - name: Authenticate GitHub CLI
-        run: gh auth setup-git
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set field
         run: |
           # Variables
